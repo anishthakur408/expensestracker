@@ -12,7 +12,7 @@ class KharchaPaniApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Kharcha  Pani',
+      title: 'Kharcha Pani',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
