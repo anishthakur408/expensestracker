@@ -1,37 +1,76 @@
 import 'package:flutter/material.dart';
-import 'constants.dart';
+import 'package:provider/provider.dart';
+import 'providers/transaction_provider.dart';
+import 'providers/preferences_provider.dart';
+import 'services/hive_service.dart';
+import 'screens/splash_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/add_transaction_screen.dart';
+import 'theme/app_theme.dart';
+import 'models/transaction_model.dart';
 
-void main() {
-  runApp(const KharchaPaniApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Hive
+  await HiveService.init();
+
+  // Initialize preferences
+  final prefsProvider = PreferencesProvider();
+  await prefsProvider.init();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => TransactionProvider()),
+        ChangeNotifierProvider.value(value: prefsProvider),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
-class KharchaPaniApp extends StatelessWidget {
-  const KharchaPaniApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Kharcha Pani',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.background,
-        colorScheme: ColorScheme.dark(
-          primary: AppColors.accent,
-          surface: AppColors.surface,
-          onPrimary: AppColors.background,
-          onSurface: AppColors.textPrimary,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.background,
-          elevation: 0,
-        ),
-        bottomSheetTheme: const BottomSheetThemeData(
-          backgroundColor: Colors.transparent, // Allow custom shapes
-        ),
-      ),
-      home: const HomeScreen(),
+    return Consumer<PreferencesProvider>(
+      builder: (context, prefsProvider, child) {
+        return MaterialApp(
+          title: 'Kharcha Pani',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: prefsProvider.isDarkMode
+              ? ThemeMode.dark
+              : ThemeMode.light,
+          initialRoute: '/',
+          onGenerateRoute: (settings) {
+            switch (settings.name) {
+              case '/':
+                return MaterialPageRoute(builder: (_) => const SplashScreen());
+              case '/onboarding':
+                return MaterialPageRoute(
+                  builder: (_) => const OnboardingScreen(),
+                );
+              case '/home':
+                return MaterialPageRoute(builder: (_) => const HomeScreen());
+              case '/add-transaction':
+                final args = settings.arguments as Map<String, dynamic>?;
+                return MaterialPageRoute(
+                  builder: (_) => AddTransactionScreen(
+                    initialType: args?['type'] as TransactionType?,
+                    transaction: args?['transaction'] as TransactionModel?,
+                  ),
+                );
+              default:
+                return MaterialPageRoute(builder: (_) => const SplashScreen());
+            }
+          },
+        );
+      },
     );
   }
 }
